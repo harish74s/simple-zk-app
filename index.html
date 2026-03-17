@@ -5,221 +5,343 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Simple Circuit — ZK Proof Demo</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+    :root {
+      --bg-0: #0a1218;
+      --bg-1: #102430;
+      --panel: rgba(10, 24, 33, 0.74);
+      --line: rgba(110, 197, 222, 0.22);
+      --text: #e8f7ff;
+      --muted: #97b5c0;
+      --accent: #f4a259;
+      --accent-2: #5ad2f4;
+      --success: #4fe7a8;
+      --danger: #ff7f72;
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      background: #0d0d0d;
-      color: #e0e0e0;
-      font-family: 'Courier New', monospace;
       min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 48px 16px;
+      background:
+        radial-gradient(44rem 34rem at 12% 8%, rgba(90, 210, 244, 0.17), transparent 68%),
+        radial-gradient(42rem 32rem at 88% 0%, rgba(244, 162, 89, 0.13), transparent 72%),
+        linear-gradient(155deg, var(--bg-0), var(--bg-1));
+      color: var(--text);
+      font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
+      display: grid;
+      place-items: center;
+      padding: 42px 16px;
+      overflow-x: hidden;
     }
 
-    header {
-      text-align: center;
-      margin-bottom: 40px;
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      width: 240px;
+      height: 240px;
+      border: 1px solid rgba(90, 210, 244, 0.18);
+      transform: rotate(22deg);
+      pointer-events: none;
+      z-index: 0;
     }
 
-    header h1 {
-      font-size: 2rem;
-      color: #a78bfa;
-      letter-spacing: 2px;
-    }
+    body::before { top: -84px; left: -74px; }
+    body::after  { right: -72px; bottom: -92px; border-color: rgba(244, 162, 89, 0.2); }
 
-    header p {
-      margin-top: 8px;
-      color: #888;
-      font-size: 0.9rem;
-    }
-
-    .circuit-box {
-      background: #161616;
-      border: 1px solid #2a2a2a;
-      border-radius: 8px;
-      padding: 20px 24px;
-      margin-bottom: 32px;
+    .app {
       width: 100%;
-      max-width: 560px;
+      max-width: 1020px;
+      position: relative;
+      z-index: 1;
+      animation: reveal 0.6s ease;
     }
 
-    .circuit-box h2 {
-      font-size: 0.75rem;
-      color: #666;
+    .hero {
+      margin-bottom: 26px;
+      text-align: center;
+    }
+
+    .hero h1 {
+      font-size: clamp(1.85rem, 3.9vw, 3.1rem);
+      line-height: 1.08;
+      letter-spacing: 0.02em;
+    }
+
+    .hero h1 .tag {
+      color: var(--accent);
+      margin-right: 10px;
+    }
+
+    .hero p {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 0.96rem;
+      letter-spacing: 0.04em;
       text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 12px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: 1fr;
+    }
+
+    .panel {
+      background: linear-gradient(148deg, rgba(9, 21, 28, 0.92), var(--panel));
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      -webkit-backdrop-filter: blur(5px);
+      backdrop-filter: blur(5px);
+      box-shadow: 0 24px 46px rgba(0, 0, 0, 0.34);
+      padding: 22px;
+    }
+
+    .panel-title {
+      font-size: 0.78rem;
+      color: #8dc9db;
+      text-transform: uppercase;
+      letter-spacing: 0.17em;
+      margin-bottom: 14px;
     }
 
     .circuit-box pre {
-      color: #c4b5fd;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(110, 197, 222, 0.15);
+      border-radius: 10px;
+      padding: 14px 16px;
+      color: #d4f7ff;
+      line-height: 1.66;
       font-size: 0.95rem;
-      line-height: 1.6;
+      font-family: 'IBM Plex Mono', monospace;
     }
 
-    .circuit-box pre .kw  { color: #818cf8; }
-    .circuit-box pre .fn  { color: #34d399; }
-    .circuit-box pre .pub { color: #f59e0b; }
-    .circuit-box pre .str { color: #f87171; }
+    .circuit-box pre .kw  { color: #7fd6f3; }
+    .circuit-box pre .fn  { color: #ffc178; }
+    .circuit-box pre .pub { color: #a8f0d1; }
+    .circuit-box pre .str { color: #ff9790; }
 
-    form {
-      width: 100%;
-      max-width: 560px;
+    #proofForm {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 14px;
     }
 
     .field {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 7px;
     }
 
     .field label {
-      font-size: 0.8rem;
-      color: #888;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      color: #c9e9f6;
     }
 
     .field label span {
-      margin-left: 6px;
-      font-size: 0.7rem;
-      padding: 2px 6px;
-      border-radius: 4px;
+      font-size: 0.67rem;
+      border-radius: 999px;
+      padding: 3px 9px;
+      letter-spacing: 0.11em;
     }
 
-    .badge-private { background: #1e1b4b; color: #a78bfa; }
-    .badge-public  { background: #1c3426; color: #34d399; }
+    .badge-private { background: rgba(90, 210, 244, 0.13); color: #8ee5ff; }
+    .badge-public  { background: rgba(244, 162, 89, 0.15); color: #ffc58f; }
 
     .field input {
-      background: #1a1a1a;
-      border: 1px solid #333;
-      border-radius: 6px;
-      padding: 10px 14px;
-      color: #e0e0e0;
-      font-family: 'Courier New', monospace;
+      border: 1px solid rgba(141, 201, 219, 0.3);
+      border-radius: 10px;
+      background: rgba(4, 13, 19, 0.7);
+      color: var(--text);
+      font-family: 'IBM Plex Mono', monospace;
       font-size: 1rem;
+      padding: 12px 14px;
       outline: none;
-      transition: border-color 0.2s;
+      transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
     }
 
-    .field input:focus { border-color: #a78bfa; }
+    .field input:focus {
+      border-color: var(--accent-2);
+      box-shadow: 0 0 0 3px rgba(90, 210, 244, 0.18);
+      transform: translateY(-1px);
+    }
 
     .hint {
-      font-size: 0.75rem;
-      color: #555;
+      color: var(--muted);
+      font-size: 0.78rem;
+      letter-spacing: 0.01em;
     }
 
-    button {
-      margin-top: 8px;
-      padding: 12px;
-      background: #7c3aed;
-      color: #fff;
+    #btn {
+      margin-top: 6px;
       border: none;
-      border-radius: 6px;
-      font-family: 'Courier New', monospace;
-      font-size: 1rem;
+      border-radius: 12px;
+      padding: 13px 14px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-family: 'Space Grotesk', sans-serif;
+      color: #102430;
+      background: linear-gradient(90deg, var(--accent), #ffd18f);
       cursor: pointer;
-      letter-spacing: 1px;
-      transition: background 0.2s;
+      transition: transform 0.18s ease, filter 0.18s ease;
     }
 
-    button:hover:not(:disabled) { background: #6d28d9; }
-    button:disabled { background: #3b2568; color: #888; cursor: not-allowed; }
+    #btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      filter: saturate(1.15);
+    }
+
+    #btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+      filter: grayscale(0.4);
+    }
 
     #result {
-      width: 100%;
-      max-width: 560px;
-      margin-top: 28px;
+      margin-top: 18px;
     }
 
-    .steps { display: flex; flex-direction: column; gap: 10px; }
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
 
     .step {
-      display: flex;
+      display: grid;
+      grid-template-columns: 24px 1fr;
       align-items: center;
-      gap: 12px;
-      background: #161616;
-      border: 1px solid #2a2a2a;
-      border-radius: 6px;
-      padding: 12px 16px;
+      gap: 10px;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(141, 201, 219, 0.2);
+      border-radius: 10px;
+      padding: 10px 12px;
     }
 
-    .step.ok   { border-color: #14532d; }
-    .step.fail { border-color: #450a0a; }
+    .step.ok { border-color: rgba(79, 231, 168, 0.42); }
+    .step.fail { border-color: rgba(255, 127, 114, 0.45); }
+    .step-icon { font-size: 1rem; text-align: center; }
 
-    .step-icon { font-size: 1.1rem; min-width: 20px; text-align: center; }
-    .step-name { color: #a78bfa; flex: 1; }
-    .step-msg  { font-size: 0.8rem; color: #666; }
+    .step-name {
+      color: #d7f6ff;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.91rem;
+    }
+
+    .step-msg {
+      grid-column: 2;
+      color: var(--muted);
+      font-size: 0.78rem;
+      margin-top: 2px;
+    }
 
     .verdict {
-      margin-top: 16px;
-      padding: 14px 20px;
-      border-radius: 6px;
+      margin-top: 13px;
+      border-radius: 10px;
+      padding: 12px;
       text-align: center;
-      font-size: 1rem;
-      letter-spacing: 1px;
+      font-size: 0.9rem;
+      letter-spacing: 0.03em;
+      font-weight: 600;
     }
 
-    .verdict.success { background: #052e16; color: #4ade80; border: 1px solid #14532d; }
-    .verdict.failure { background: #2d0a0a; color: #f87171; border: 1px solid #450a0a; }
+    .verdict.success {
+      background: rgba(79, 231, 168, 0.1);
+      color: var(--success);
+      border: 1px solid rgba(79, 231, 168, 0.38);
+    }
+
+    .verdict.failure {
+      background: rgba(255, 127, 114, 0.1);
+      color: var(--danger);
+      border: 1px solid rgba(255, 127, 114, 0.4);
+    }
 
     .spinner {
       display: inline-block;
-      width: 14px; height: 14px;
-      border: 2px solid #555;
-      border-top-color: #a78bfa;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(16, 36, 48, 0.24);
+      border-top-color: #102430;
       border-radius: 50%;
       animation: spin 0.7s linear infinite;
       vertical-align: middle;
       margin-right: 8px;
     }
 
-    @keyframes spin { to { transform: rotate(360deg); } }
-
     footer {
-      margin-top: 56px;
-      font-size: 0.75rem;
-      color: #333;
+      margin-top: 20px;
       text-align: center;
+      color: rgba(151, 181, 192, 0.76);
+      font-size: 0.75rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes reveal {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (min-width: 900px) {
+      .grid {
+        grid-template-columns: 1.1fr 1fr;
+        align-items: start;
+      }
+
+      #result {
+        margin-top: 0;
+      }
     }
   </style>
 </head>
 <body>
 
-  <header>
-    <h1>⚡ ZK Proof Demo - Powered by zkVerify</h1>
-    <p>Powered by Noir + Barretenberg &nbsp;·&nbsp; simple_circuit</p>
-  </header>
+  <main class="app">
+    <header class="hero">
+      <h1><span class="tag">Circuit Check</span> Zero-Knowledge Proof Playground</h1>
+      <p>Noir + Barretenberg · simple_circuit</p>
+    </header>
 
-  <div class="circuit-box">
-    <h2>Circuit</h2>
-    <pre><span class="kw">fn</span> <span class="fn">main</span>(x: Field, y: <span class="pub">pub</span> Field) {
+    <section class="grid">
+      <div class="panel circuit-box">
+        <h2 class="panel-title">Circuit</h2>
+        <pre><span class="kw">fn</span> <span class="fn">main</span>(x: Field, y: <span class="pub">pub</span> Field) {
     assert(x == y);
 }</pre>
-  </div>
+      </div>
 
-  <form id="proofForm">
-    <div class="field">
-      <label>x <span class="badge-private">private</span></label>
-      <input type="text" id="x" placeholder="e.g. 42" autocomplete="off" required />
-      <span class="hint">Known only to you — never revealed in the proof</span>
-    </div>
-    <div class="field">
-      <label>y <span class="badge-public">public</span></label>
-      <input type="text" id="y" placeholder="e.g. 42" autocomplete="off" required />
-      <span class="hint">Public value — must equal x for the proof to pass</span>
-    </div>
-    <button type="submit" id="btn">Generate &amp; Verify Proof</button>
-  </form>
+      <div class="panel">
+        <h2 class="panel-title">Prove Equality</h2>
+        <form id="proofForm">
+          <div class="field">
+            <label>x <span class="badge-private">private</span></label>
+            <input type="text" id="x" placeholder="e.g. 42" autocomplete="off" required />
+            <span class="hint">Known only to you, never revealed in the proof.</span>
+          </div>
+          <div class="field">
+            <label>y <span class="badge-public">public</span></label>
+            <input type="text" id="y" placeholder="e.g. 42" autocomplete="off" required />
+            <span class="hint">Public value that must match x.</span>
+          </div>
+          <button type="submit" id="btn">Generate and Verify Proof</button>
+        </form>
+        <div id="result"></div>
+      </div>
+    </section>
 
-  <div id="result"></div>
-
-  <footer>simple-circuit &nbsp;·&nbsp; khushii &nbsp;·&nbsp; Noir ZK</footer>
+    <footer>simple-circuit · khushii · Noir ZK</footer>
+  </main>
 
   <script>
     const form = document.getElementById("proofForm");
